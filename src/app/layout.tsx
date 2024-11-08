@@ -1,10 +1,12 @@
 import "@/styles/globals.css"
+import "@mysten/dapp-kit/dist/index.css"
 
 import type { Metadata, Viewport } from "next"
 
 import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
+import { WalletProvider } from "@/components/wallet-provider"
 
 interface RootLayoutProps {
   children: React.ReactNode
@@ -46,7 +48,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
-    creator: "@_rdev7",
+    creator: "",
   },
   icons: {
     icon: "/favicon.ico",
@@ -67,11 +69,11 @@ export default function RootLayout({ children }: RootLayoutProps) {
       <body className={cn("min-h-screen antialiased")}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <WalletProvider>{children}</WalletProvider>
         </ThemeProvider>
       </body>
     </html>

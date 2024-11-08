@@ -11,7 +11,7 @@ export const agreementSchema = z.object({
   relevantInformation: z
     .string()
     .describe(
-      "The relevant information of the agreement, for example, if the agreement is about price, the info must include the price."
+      "The relevant information of the agreement, for example, if the agreement is about price, the info must include the current price as a reference."
     ),
   startAt: z
     .string()

@@ -1,19 +1,16 @@
 "use client"
 
 import { useCallback, useState } from "react"
-import Link from "next/link"
 import { getPredictionInput } from "@/services/ai"
-import { CoreMessage } from "ai"
+import { ConnectButton } from "@mysten/dapp-kit"
 import { Loader2 } from "lucide-react"
 
 import { Agreement } from "@/types/agreement"
 import { siteConfig } from "@/config/site"
 import { dayjs } from "@/lib/dayjs"
 import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Icons } from "@/components/icons"
-import { ModeToggle } from "@/components/mode-toggle"
 
 export default function Home() {
   const [messages, setMessages] = useState<
@@ -78,7 +75,11 @@ export default function Home() {
 
   return (
     <main className="container flex min-h-screen flex-col items-center justify-center gap-4 py-8">
-      <h1 className="text-3xl font-bold">Ace</h1>
+      <div className="flex items-center gap-4">
+        <h1 className="text-3xl font-bold">{siteConfig.name}</h1>
+        <ConnectButton />
+      </div>
+
       <div className="w-full max-w-[600px]">
         {messages.length === 0 ? (
           <form
@@ -112,55 +113,58 @@ export default function Home() {
                     <Loader2 className="size-4 animate-spin" />
                   </div>
                 ) : message.role === "result" ? (
-                  <div className="space-y-2 rounded-md bg-primary-foreground p-4">
-                    <div className="space-y-2 text-sm">
-                      <div className="text-lg font-bold">
-                        {message.content.agreement}
-                      </div>
-                      <div className="text-muted-foreground">
-                        {message.content.description}
-                      </div>
-                      <div>
-                        <div className="font-semibold">
-                          Relevant information
+                  <div>
+                    <div className="space-y-2 rounded-md bg-primary-foreground p-4">
+                      <div className="space-y-2 text-sm">
+                        <div className="text-lg font-bold">
+                          {message.content.agreement}
                         </div>
                         <div className="text-muted-foreground">
-                          {message.content.relevantInformation}
+                          {message.content.description}
                         </div>
-                      </div>
-                      <div>
-                        <div className="font-semibold">Rules</div>
-                        <div className="text-muted-foreground">
-                          {message.content.rules}
-                        </div>
-                      </div>
-                      <div className="italic">
-                        Resolves in {dayjs(message.content.resolveAt).fromNow()}{" "}
-                        (
-                        {dayjs(message.content.resolveAt).format(
-                          "DD/MM/YYYY, HH:mm Z"
-                        )}
-                        )
-                      </div>
-                      <div className="italic">
-                        Betting end {dayjs(message.content.betEndAt).fromNow()}{" "}
-                        (
-                        {dayjs(message.content.betEndAt).format(
-                          "DD/MM/YYYY, HH:mm Z"
-                        )}
-                        )
-                      </div>
-                    </div>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
-                      {message.content.outcomes.map((outcome, index) => (
-                        <div className="rounded-md border p-2" key={index}>
-                          <div>{outcome.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {outcome.description}
+                        <div>
+                          <div className="font-semibold">
+                            Relevant information
+                          </div>
+                          <div className="text-muted-foreground">
+                            {message.content.relevantInformation}
                           </div>
                         </div>
-                      ))}
+                        <div>
+                          <div className="font-semibold">Rules</div>
+                          <div className="text-muted-foreground">
+                            {message.content.rules}
+                          </div>
+                        </div>
+                        <div className="italic">
+                          Resolves in{" "}
+                          {dayjs(message.content.resolveAt).fromNow()} (
+                          {dayjs(message.content.resolveAt).format(
+                            "DD/MM/YYYY, HH:mm Z"
+                          )}
+                          )
+                        </div>
+                        <div className="italic">
+                          Betting end{" "}
+                          {dayjs(message.content.betEndAt).fromNow()} (
+                          {dayjs(message.content.betEndAt).format(
+                            "DD/MM/YYYY, HH:mm Z"
+                          )}
+                          )
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {message.content.outcomes.map((outcome, index) => (
+                          <div className="rounded-md border p-2" key={index}>
+                            <div>{outcome.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {outcome.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                    <Button size="xs">Create Market With This Version</Button>
                   </div>
                 ) : (
                   <div className="whitespace-normal rounded-md bg-primary-foreground p-2">

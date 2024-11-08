@@ -1,7 +1,7 @@
 "use server"
 
 import { createAISDKTools } from "@agentic/ai-sdk"
-import { serper, SerperClient } from "@agentic/serper"
+import { SerperClient } from "@agentic/serper"
 import { CoreMessage, generateObject, generateText, tool } from "ai"
 import _ from "lodash"
 import { z } from "zod"
@@ -10,10 +10,14 @@ import { agreementSchema } from "@/types/agreement"
 import { openrouter } from "@/config/ai"
 
 export const getPredictionInput = async (prevMessages: CoreMessage[]) => {
-  const serperTool = new SerperClient()
+  const serperTool = new SerperClient({
+    gl: "us",
+    hl: "en",
+    num: 10,
+  })
   const tools = {
     ...createAISDKTools(serperTool),
-    queryPerplexity: tool({
+    query_perplexity: tool({
       description:
         "Make a query to the online LLM model (Perplexity) to ask for information from the internet, may not be recent but can be used to get general information.",
       parameters: z.object({
@@ -144,12 +148,20 @@ The agreement created in the final answer must can be answered by searching the 
 
 Example:
 - "make a bet i will get up tomorrow" -> The information of the user getting up tomorrow is not available on the internet, so prompt the user to make a new type of agreement. Such as "This type of prediction is not possible due to the information of the user getting up is not available on the internet. Please make a new type of prediction agreement."
+- "eth >100k$ eoy" -> The information of the Ethereum price is available on the internet, so this is possible.
 - "make a bet on the next liverpool football match" -> The information of the next liverpool football match is available on the internet, so this is possible.
 - "bet if weather will be rainy tmr" -> The information of the weather tomorrow is available on the internet, so this is possible, but you need to ask the user for the location.
 - "bet if weather will be rainy tmr in bkk" -> The information of the weather tomorrow in Bangkok is available on the internet, so this is possible.
+- "Who will be inaugurated as President?" -> Assume that user is talking about US president -> Query the internet about information of the president candidates -> If the current period is the election period, then this is possible. -> If the current period is not the election period, then prompt the user to make a new type of agreement.
 
 If user says end of month, it means the last day of current month, do not ask the user for the exact date.
+If user says end of year, it means the last day of current year, do not ask the user for the exact date.
 
+DO NOT ASSUME RECENT EVENTS OR INFORMATION. Search the internet first for confirming.
+
+You always have access to internet by using "serper_google_search" or "query_perplexity" tools.
+
+When you are searching for 2 things, use 2 "serper_google_search" tools, do not use 1 tool to search for 2 things.
 
 ACTION: HIGH_LEVEL_PLANNING
 DESCRIPTION: Plan and reason the steps to get the final answer.
@@ -160,6 +172,7 @@ DESCRIPTION: Execute the available tools one or multiple time, DO NOT EXECUTE TH
 ACTION: TALK
 DESCRIPTION: If you need to ask the user for more information, use this action to prompt the user for more information. You can also display the information/error to the user. Or if user is just talking to you, you can talk back to the user with this action. You must be very concise and clear with the user. Do not talk too much, only direct information.
 IF THIS ACTION IS USED, YOU MUST PROVIDE "TALK" IN THE RESULT.
+DO NOT TALK WITH EMPTY MESSAGE.
 
 ACTION: FINAL_ANSWER
 DESCRIPTION: Give the final prediction market agreement information to the user
@@ -171,19 +184,13 @@ YOU MUST ALWAYS DO HIGH_LEVEL_PLANNING AFTER EVERY USER MESSAGE.
 
 You must search and find the pinpoint information from the user query.
 
-Example: user prompt "liverpool will win next football match" -> find the next liverpool football match, then use that information to create a prediction market agreement. -> final answer -> user prompt (continue) "make it handicapped based on market odds" -> find the market odds for that match and create a handicapped prediction market agreement with handicapped outcomes.
-
-Example: user prompt "bet if weather will be rainy tmr" -> ask the user for the location -> user prompt (continue) "bangkok" -> create a prediction market agreement that compares the weather in Bangkok tomorrow.
-
-Example: user prompt "op vs sui marketcap" -> ask the user for the end date -> user prompt (continue) "end of month" -> create a prediction market agreement that compares the marketcap of OP and SUI at the end of the month.
-
 Do not insert something like "[Insert current Bitcoin price from a reliable source]", but use the tools to get the information and insert the actual data.
 
 After you are absolutely sure that you get the final answer. Give the final answer to the user.
 
 ONLY the data in the FINAL_ANSWER will be returned to the user, not the previous messages or the steps. SO MAKE SURE that the FINAL_ANSWER contains all the information that the user needs.
 
-The FINAL_ANSWER is a final prediction market agreement. So do not use any placeholder or incomplete information in the FINAL_ANSWER, instead insert the actual data.
+The FINAL_ANSWER is a final prediction market agreement. So do not use any placeholder or incomplete or approximated information in the FINAL_ANSWER, instead insert the actual data.
 `,
       messages,
       maxRetries: 5,

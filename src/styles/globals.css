@@ -35,6 +35,10 @@
     --ring: 0 0% 3.9%;
 
     --radius: 0.5rem;
+
+    --wkit-on-accent-rgb: 255, 255, 255;
+    --wkit-bg-rgb: 40, 40, 40;
+    --wkit-on-bg-rgb: 241, 241, 241;
   }
 
   .dark {
@@ -65,6 +69,11 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
+
+    /*--wkit-accent-hs: 166, 91%;*/
+    --wkit-on-accent-rgb: 255, 255, 255;
+    --wkit-bg-rgb: 40, 40, 40;
+    --wkit-on-bg-rgb: 241, 241, 241;
   }
 }
 
