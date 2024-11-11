@@ -1,7 +1,7 @@
 import { z } from "zod"
 
 export const agreementSchema = z.object({
-  agreement: z.string().describe("The agreement to be resolved"),
+  title: z.string().describe("The agreement to be resolved"),
   rules: z
     .string()
     .describe(
@@ -31,10 +31,13 @@ export const agreementSchema = z.object({
     .describe(
       `The query that will be ran to resolve the agreement at the "resolveAt" datetime. The query must be able to be answered by searching the internet.`
     ),
+  resolveSources: z
+    .array(z.string())
+    .describe("The possible sources URL that the query can be answered from."),
   outcomes: z
     .array(
       z.object({
-        name: z.string().describe("The name of the outcome"),
+        title: z.string().describe("The title of the outcome"),
         description: z.string().describe("The description of the outcome"),
       })
     )

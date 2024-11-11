@@ -117,7 +117,7 @@ export default function Home() {
                     <div className="space-y-2 rounded-md bg-primary-foreground p-4">
                       <div className="space-y-2 text-sm">
                         <div className="text-lg font-bold">
-                          {message.content.agreement}
+                          {message.content.title}
                         </div>
                         <div className="text-muted-foreground">
                           {message.content.description}
@@ -156,7 +156,7 @@ export default function Home() {
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {message.content.outcomes.map((outcome, index) => (
                           <div className="rounded-md border p-2" key={index}>
-                            <div>{outcome.name}</div>
+                            <div>{outcome.title}</div>
                             <div className="text-sm text-muted-foreground">
                               {outcome.description}
                             </div>
