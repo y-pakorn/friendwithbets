@@ -62,6 +62,7 @@ export type OnChainAgreement = {
     title: string
     description: string
   }[]
+  rules: string
   publicKey?: Uint8Array
   relevantInformation: string
   resolveAt: Date
@@ -72,6 +73,6 @@ export type OnChainAgreement = {
   resolvedProof: string
   startAt: Date
   betEndAt: Date
-  betsAgg: number
-  betsTotal: number
+  betsAgg: string[]
+  betsTotal: string
 }

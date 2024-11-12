@@ -21,6 +21,7 @@ module contract::core {
     public struct MarketCreated has copy, drop {
         market_id: ID,
         creator: address,
+        is_public: bool,
     }
 
     public struct MarketResolved has copy, drop {
@@ -134,6 +135,7 @@ module contract::core {
         emit(MarketCreated {
             market_id: *market.id.as_inner(),
             creator: ctx.sender(),
+            is_public: public_key.is_none(),
         });
 
         transfer::share_object(market);
@@ -159,8 +161,8 @@ module contract::core {
 
         if (market.public_key.is_some()) {
             let public_key = market.public_key.borrow();
-            let mut base_msg = string::utf8(b"Verifying Market Access ");
-            string::append(&mut base_msg, ctx.sender().to_string());
+            let mut base_msg = b"Verifying Market Access ".to_string();
+            base_msg.append(ctx.sender().to_string());
             let verified = ed25519_verify(&signature, public_key, &base_msg.into_bytes());
             assert!(verified, E_INVALID_MARKET_SIGNATURE);
         };
@@ -230,8 +232,8 @@ module contract::core {
         let resolved_outcome = market.resolved_outcome.borrow();
         assert!(*resolved_outcome == bet.outcome, E_INVALID_OUTCOME);
 
-        // Calculate the payout = (bet_amount * total_bets) / agg_bets
-        let payout = (bet.amount * market.bets_total) / market.bets_agg[bet.outcome];
+        // Calculate the payout = (bet_amount * (total_bets - agg_bet)) / agg_bet + bet_amount
+        let payout = (bet.amount * (market.bets_total - market.bets_agg[bet.outcome])) / market.bets_agg[bet.outcome] + bet.amount;
 
         // Mark the bet as claimed
         bet.claimed_at = clock.timestamp_ms();

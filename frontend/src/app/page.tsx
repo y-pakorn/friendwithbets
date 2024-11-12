@@ -4,6 +4,7 @@ import { useCallback, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { getPredictionInput } from "@/services/ai"
+import { stringToBytes, stringToNumberArray } from "@/services/sui"
 import {
   ConnectButton,
   useCurrentAccount,
@@ -96,8 +97,6 @@ export default function Home() {
   const createMarket = async (agreement: Agreement, pub?: boolean) => {
     if (!account?.address) return
 
-    const stringToBytes = (str: string) => new TextEncoder().encode(str)
-    const stringToNumberArray = (str: string) => Array.from(stringToBytes(str))
     const tb = new Transaction()
     const { publicKeyBcs, privateKey } = !pub
       ? await (async () => {

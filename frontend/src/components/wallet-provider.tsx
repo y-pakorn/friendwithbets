@@ -21,6 +21,7 @@ const WalletProvider = ({ children }: { children: ReactNode }) => {
     <QueryClientProvider client={queryClient}>
       <SuiClientProvider networks={networkConfig} defaultNetwork="devnet">
         <SuiWalletProvider
+          autoConnect
           stashedWallet={{
             name: siteConfig.name,
           }}

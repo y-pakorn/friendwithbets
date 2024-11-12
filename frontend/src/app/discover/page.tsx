@@ -1,57 +1,19 @@
 "use client"
 
 import { useState } from "react"
-import {
-  useCurrentAccount,
-  useSuiClient,
-  useSuiClientQuery,
-} from "@mysten/dapp-kit"
+import Link from "next/link"
+import { useSuiClient } from "@mysten/dapp-kit"
 import { useQuery } from "@tanstack/react-query"
 
 import { OnChainAgreement } from "@/types/agreement"
 import { contract } from "@/config/contract"
 import { Badge } from "@/components/ui/badge"
+import { buttonVariants } from "@/components/ui/button"
+import { getMarkets } from "@/services/sui"
 
 export default function Home() {
-  const account = useCurrentAccount()
-
   const [page, setPage] = useState(1)
   const client = useSuiClient()
-
-  const getMarkets = async (marketIds: string[]) => {
-    const resp = await client.multiGetObjects({
-      ids: marketIds,
-      options: {
-        showContent: true,
-      },
-    })
-
-    return resp.map((r) => {
-      const fields = (r.data?.content as any).fields
-      return {
-        id: fields.id.id,
-        title: fields.title,
-        description: fields.description,
-        outcomes: fields.outcomes.map((f: any) => f.fields),
-        publicKey: fields.public_key
-          ? Uint8Array.from(fields.public_key)
-          : undefined,
-        relevantInformation: fields.relevant_information,
-        resolveAt: new Date(Number(fields.resolve_at)),
-        resolveQuery: fields.resolve_query,
-        resolveSources: fields.resolve_sources || [],
-        resolvedAt: Number(fields.resolved_at)
-          ? new Date(Number(fields.resolved_at))
-          : undefined,
-        resolvedOutcome: fields.resolved_outcome,
-        resolvedProof: fields.resolved_proof,
-        startAt: new Date(Number(fields.start_at)),
-        betEndAt: new Date(Number(fields.bet_end_at)),
-        betsAgg: fields.bets_agg,
-        betsTotal: fields.bets_total,
-      }
-    }) as OnChainAgreement[]
-  }
 
   const markets = useQuery({
     queryKey: ["markets", page],
@@ -65,7 +27,7 @@ export default function Home() {
         })
         .then((d) => d.data.map((e) => (e.parsedJson as any).market_id))
 
-      return await getMarkets(marketIds)
+      return await getMarkets(marketIds, client)
     },
   })
 
@@ -85,7 +47,7 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
   return (
     <div
       key={market.id}
-      className="space-y-2 rounded-md border bg-card p-4 text-sm"
+      className="flex flex-col gap-2 rounded-md border bg-card p-4 text-sm"
     >
       <div className="flex justify-between">
         <Badge>
@@ -99,6 +61,15 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
       </div>
       <div className="text-lg font-bold">{market.title}</div>
       <div className="text-muted-foreground">{market.description}</div>
+      <div className="flex-1" />
+      <Link
+        href={`/market/${market.id}`}
+        className={buttonVariants({
+          variant: "outline",
+        })}
+      >
+        Go To Market
+      </Link>
     </div>
   )
 }
