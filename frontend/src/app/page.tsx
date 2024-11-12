@@ -146,7 +146,7 @@ export default function Home() {
           bcs
             .vector(bcs.vector(bcs.U8))
             .serialize(
-              agreement.resolveSources.map((s) => stringToNumberArray(s)) || []
+              agreement.resolveSources.map((s) => stringToNumberArray(s))
             )
         ), // resolveSources
         tb.pure(
@@ -303,7 +303,13 @@ export default function Home() {
                     size="xs"
                     onClick={() => createMarket(message.content, true)}
                   >
-                    Create Market With This Version
+                    Create Market (Public)
+                  </Button>
+                  <Button
+                    size="xs"
+                    onClick={() => createMarket(message.content)}
+                  >
+                    Create Market (Private)
                   </Button>
                 </div>
               ) : (

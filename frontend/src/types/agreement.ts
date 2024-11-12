@@ -45,3 +45,25 @@ export const agreementSchema = z.object({
 })
 
 export type Agreement = z.infer<typeof agreementSchema>
+
+export type OnChainAgreement = {
+  id: string
+  title: string
+  description: string
+  outcomes: {
+    title: string
+    description: string
+  }[]
+  publicKey?: Uint8Array
+  relevantInformation: string
+  resolveAt: Date
+  resolveQuery: string
+  resolveSources: string[]
+  resolvedAt?: Date
+  resolvedOutcome: number
+  resolvedProof: string
+  startAt: Date
+  betEndAt: Date
+  betsAgg: number
+  betsTotal: number
+}

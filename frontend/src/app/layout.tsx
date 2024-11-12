@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from "next"
 
 import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
+import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WalletProvider } from "@/components/wallet-provider"
 
@@ -74,6 +75,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
           disableTransitionOnChange
         >
           <WalletProvider>{children}</WalletProvider>
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
