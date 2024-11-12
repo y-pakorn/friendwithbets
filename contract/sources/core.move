@@ -4,6 +4,7 @@ module contract::core {
         coin::{Self, Coin},
         sui::SUI,
         object::new,
+        clock::Clock,
     };
 
     const ADMIN_ADDRESS: address = @admin;
@@ -36,13 +37,13 @@ module contract::core {
         description: String,
         rules: String,
         relevant_information: String,
-        start_at: u64,
         bet_end_at: u64,
         resolve_at: u64,
         resolve_query: String,
         resolve_source: vector<String>,
         outcomes: vector<Outcome>,
         // ---
+        start_at: u64,
         creator: address,
         bets_agg: vector<u64>,
         bets_total: u64,
@@ -57,14 +58,13 @@ module contract::core {
         description: String,
         rules: String,
         relevant_information: String,
-        start_at: u64,
         bet_end_at: u64,
         resolve_at: u64,
         resolve_query: String,
         resolve_source: vector<String>,
         outcomes: vector<Outcome>,
-        creator: address,
 
+        clock: &Clock,
         ctx: &mut TxContext,
     ) {
         let bets_agg = vector::map_ref!<Outcome, u64>(&outcomes, |_| 0);
@@ -74,13 +74,13 @@ module contract::core {
             description,
             rules,
             relevant_information,
-            start_at,
             bet_end_at,
             resolve_at,
             resolve_query,
             resolve_source,
             outcomes,
-            creator,
+            start_at: clock.timestamp_ms(),
+            creator: ctx.sender(),
             bets_agg,
             bets_total: 0,
             bets_coin: coin::zero(ctx),
@@ -95,6 +95,7 @@ module contract::core {
         market: &mut MarketAgreement,
         outcome: u64,
         coin: Coin<SUI>,
+        clock: &Clock,
         ctx: &mut TxContext,
     ) {
         let bet_amount = coin.value();
@@ -103,7 +104,7 @@ module contract::core {
             market_id: *market.id.as_inner(),
             outcome,
             amount: bet_amount,
-            bet_at: ctx.epoch_timestamp_ms(),
+            bet_at: clock.timestamp_ms(),
             claimed_at: 0,
         };
 
@@ -122,10 +123,11 @@ module contract::core {
     public entry fun resolve(
         market: &mut MarketAgreement,
         outcome: u64,
+        clock: &Clock,
         ctx: &mut TxContext,
     ) {
         // Check if the market is resolved
-        assert!(ctx.epoch_timestamp_ms() >= market.resolve_at, E_NOT_RESOLVE_TIME);
+        assert!(clock.timestamp_ms() >= market.resolve_at, E_NOT_RESOLVE_TIME);
 
         // Check if the market is already resolved
         assert!(market.resolved_outcome.is_none(), E_ALREADY_RESOLVED);
@@ -141,6 +143,7 @@ module contract::core {
     public entry fun claim(
         market: &mut MarketAgreement,
         bet: &mut Bet,
+        clock: &Clock,
         ctx: &mut TxContext,
     ) {
         // Check if the bet is already claimed
@@ -161,6 +164,6 @@ module contract::core {
         transfer::public_transfer(payout_coin, ctx.sender());
 
         // Mark the bet as claimed
-        bet.claimed_at = ctx.epoch_timestamp_ms();
+        bet.claimed_at = clock.timestamp_ms();
     }
 }
