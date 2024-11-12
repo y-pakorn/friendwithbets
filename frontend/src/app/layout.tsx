@@ -5,7 +5,9 @@ import type { Metadata, Viewport } from "next"
 
 import { siteConfig } from "@/config/site"
 import { cn } from "@/lib/utils"
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
+import { AppSidebar } from "@/components/app-sidebar"
 import { ThemeProvider } from "@/components/theme-provider"
 import { WalletProvider } from "@/components/wallet-provider"
 
@@ -74,7 +76,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
           enableSystem
           disableTransitionOnChange
         >
-          <WalletProvider>{children}</WalletProvider>
+          <WalletProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              {children}
+            </SidebarProvider>
+          </WalletProvider>
           <Toaster />
         </ThemeProvider>
       </body>

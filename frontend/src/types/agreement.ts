@@ -1,13 +1,21 @@
 import { z } from "zod"
 
 export const agreementSchema = z.object({
-  title: z.string().describe("The agreement to be resolved"),
+  title: z
+    .string()
+    .describe(
+      "The agreement to be resolved, the title must be clear and concise, should interpret directly to how the agreement will be resolved."
+    ),
   rules: z
     .string()
     .describe(
       "The rules of the agreement, include how the agreement will be resolved."
     ),
-  description: z.string().describe("The description of the agreement."),
+  description: z
+    .string()
+    .describe(
+      "The description of the agreement. Must be clear and concise. Do not add redundant information."
+    ),
   relevantInformation: z
     .string()
     .describe(
