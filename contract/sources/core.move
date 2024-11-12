@@ -1,5 +1,6 @@
 module contract::core {
-    use 0x1::{string::String};
+    use 0x1::string::{Self,String};
+    use 0x2::ed25519::ed25519_verify;
     use sui::{
         coin::{Self, Coin},
         sui::SUI,
@@ -13,6 +14,7 @@ module contract::core {
     const E_ALREADY_RESOLVED: u64 = 2;
     const E_NOT_ADMIN: u64 = 3;
     const E_INVALID_OUTCOME: u64 = 4;
+    const E_INVALID_MARKET_SIGNATURE: u64 = 5;
 
     #[allow(unused_field)]
     public struct Outcome has store {
@@ -42,6 +44,7 @@ module contract::core {
         resolve_query: String,
         resolve_source: vector<String>,
         outcomes: vector<Outcome>,
+        public_key: Option<vector<u8>>,
         // ---
         start_at: u64,
         creator: address,
@@ -51,53 +54,58 @@ module contract::core {
         // ---
         resolved_at: u64,
         resolved_outcome: Option<u64>,
+        resolved_proof: Option<String>,
     }
 
     public fun new_market(
-        title: String,
-        description: String,
-        rules: String,
-        relevant_information: String,
+        title: vector<u8>,
+        description: vector<u8>,
+        rules: vector<u8>,
+        relevant_information: vector<u8>,
         bet_end_at: u64,
         resolve_at: u64,
-        resolve_query: String,
-        resolve_source: vector<String>,
+        resolve_query: vector<u8>,
+        resolve_source: vector<vector<u8>>,
         outcomes: vector<Outcome>,
+        public_key: Option<vector<u8>>,
 
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
-        let bets_agg = vector::map_ref!<Outcome, u64>(&outcomes, |_| 0);
+        let bets_agg = vector::map_ref!(&outcomes, |_| 0);
         let market = MarketAgreement {
             id: new(ctx),
-            title,
-            description,
-            rules,
-            relevant_information,
+            title: string::utf8(title),
+            description: string::utf8(description),
+            rules: string::utf8(rules),
+            relevant_information: string::utf8(relevant_information),
             bet_end_at,
             resolve_at,
-            resolve_query,
-            resolve_source,
+            resolve_query: string::utf8(resolve_query),
+            resolve_source: vector::map_ref!(&resolve_source, |s| string::utf8(*s)),
             outcomes,
             start_at: clock.timestamp_ms(),
             creator: ctx.sender(),
+            public_key,
             bets_agg,
             bets_total: 0,
             bets_coin: coin::zero(ctx),
             resolved_at: 0,
             resolved_outcome: option::none(),
+            resolved_proof: option::none(),
         };
 
-        transfer::public_share_object(market);
+        transfer::share_object(market);
     }
 
-    public entry fun bet(
+    public fun bet(
         market: &mut MarketAgreement,
+        signature: vector<u8>,
         outcome: u64,
         coin: Coin<SUI>,
         clock: &Clock,
         ctx: &mut TxContext,
-    ) {
+    ): Bet {
         let bet_amount = coin.value();
         let bet = Bet {
             id: new(ctx),
@@ -108,21 +116,30 @@ module contract::core {
             claimed_at: 0,
         };
 
+        if (market.public_key.is_some()) {
+            let public_key = market.public_key.borrow();
+            let mut base_msg = string::utf8(b"Verifying Market Access ");
+            string::append(&mut base_msg, ctx.sender().to_string());
+            let verified = ed25519_verify(&signature, public_key, &base_msg.into_bytes());
+            assert!(verified, E_INVALID_MARKET_SIGNATURE);
+        };
+
         // Transfer the bet amount to the market
         coin::join(&mut market.bets_coin, coin);
-
-        // Transfer the bet object to the user
-        transfer::public_transfer(bet, ctx.sender());
 
         // Update the aggregate bet amount for the outcome
         let agg = market.bets_agg.borrow_mut(outcome);
         *agg = *agg + bet_amount;
         market.bets_total = market.bets_total + bet_amount;
+
+        // Transfer the bet object to the user
+        return bet
     }
 
-    public entry fun resolve(
+    public fun resolve(
         market: &mut MarketAgreement,
         outcome: u64,
+        proof: vector<u8>,
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
@@ -138,6 +155,7 @@ module contract::core {
         // Set the resolved outcome
         market.resolved_outcome = option::some(outcome);
         market.resolved_at = ctx.epoch_timestamp_ms();
+        market.resolved_proof = option::some(string::utf8(proof));
     }
 
     public entry fun claim(
