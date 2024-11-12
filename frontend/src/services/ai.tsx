@@ -16,7 +16,26 @@ export const getPredictionInput = async (prevMessages: CoreMessage[]) => {
     num: 10,
   })
   const tools = {
-    ...createAISDKTools(serperTool),
+    google_search: tool({
+      description:
+        "Uses Google Search to return the most relevant web pages for a given query. Useful for finding up-to-date news and information about any topic.",
+      parameters: z.object({
+        query: z.string().describe("Search query, be precise and clear."),
+        num: z
+          .number()
+          .optional()
+          .default(10)
+          .describe("Number of results to return, default is 10."),
+      }),
+      execute: async ({ query, num }) => {
+        const result = await serperTool.search({
+          q: query,
+          num,
+          type: "search",
+        })
+        return _.omit(result, "searchParameters", "credits")
+      },
+    }),
     query_perplexity: tool({
       description:
         "Make a query to the online LLM model (Perplexity) to ask for information from the internet, may not be recent but can be used to get general information.",
@@ -159,9 +178,9 @@ If user says end of year, it means the last day of current year, do not ask the 
 
 DO NOT ASSUME RECENT EVENTS OR INFORMATION. Search the internet first for confirming.
 
-You always have access to internet by using "serper_google_search" or "query_perplexity" tools.
+You always have access to internet by using "google_search" or "query_perplexity" tools.
 
-When you are searching for 2 things, use 2 "serper_google_search" tools, do not use 1 tool to search for 2 things.
+When you are searching for 2 things, use 2 "google_search" tools, do not use 1 tool to search for 2 things.
 
 ACTION: HIGH_LEVEL_PLANNING
 DESCRIPTION: Plan and reason the steps to get the final answer.

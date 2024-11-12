@@ -6,6 +6,7 @@ module contract::core {
         sui::SUI,
         object::new,
         clock::Clock,
+        event::emit,
     };
 
     const ADMIN_ADDRESS: address = @admin;
@@ -16,6 +17,26 @@ module contract::core {
     const E_INVALID_OUTCOME: u64 = 4;
     const E_INVALID_MARKET_SIGNATURE: u64 = 5;
 
+    // Events
+    public struct MarketCreated has copy, drop {
+        market_id: ID,
+        creator: address,
+    }
+
+    public struct MarketResolved has copy, drop {
+        market_id: ID,
+        resolved_outcome: u64,
+    }
+
+    public struct BetPlaced has copy, drop {
+        market_id: ID,
+        bet_id: ID,
+        by: address,
+        outcome: u64,
+        amount: u64,
+    }
+
+    // Structs
     #[allow(unused_field)]
     public struct Outcome has store {
         title: String,
@@ -66,13 +87,27 @@ module contract::core {
         resolve_at: u64,
         resolve_query: vector<u8>,
         resolve_source: vector<vector<u8>>,
-        outcomes: vector<Outcome>,
+        outcome_titles: vector<vector<u8>>,
+        outcome_descriptions: vector<vector<u8>>,
         public_key: Option<vector<u8>>,
 
         clock: &Clock,
         ctx: &mut TxContext,
     ) {
-        let bets_agg = vector::map_ref!(&outcomes, |_| 0);
+        assert!(outcome_titles.length() > 1, E_INVALID_OUTCOME);
+        assert!(outcome_titles.length() == outcome_descriptions.length(), E_INVALID_OUTCOME);
+
+        let mut outcomes = vector::empty();
+        let mut bets_agg = vector::empty();
+
+        vector::zip_do!(outcome_titles, outcome_descriptions, |title, description| {
+            outcomes.push_back(Outcome {
+                title: string::utf8(title),
+                description: string::utf8(description),
+            });
+            bets_agg.push_back(0);
+        });
+
         let market = MarketAgreement {
             id: new(ctx),
             title: string::utf8(title),
@@ -94,6 +129,12 @@ module contract::core {
             resolved_outcome: option::none(),
             resolved_proof: option::none(),
         };
+
+        // Emit the market created event
+        emit(MarketCreated {
+            market_id: *market.id.as_inner(),
+            creator: ctx.sender(),
+        });
 
         transfer::share_object(market);
     }
@@ -132,6 +173,15 @@ module contract::core {
         *agg = *agg + bet_amount;
         market.bets_total = market.bets_total + bet_amount;
 
+        // Emit the bet event
+        emit(BetPlaced {
+            market_id: *market.id.as_inner(),
+            bet_id: *bet.id.as_inner(),
+            by: ctx.sender(),
+            outcome,
+            amount: bet_amount,
+        });
+
         // Transfer the bet object to the user
         return bet
     }
@@ -156,14 +206,20 @@ module contract::core {
         market.resolved_outcome = option::some(outcome);
         market.resolved_at = ctx.epoch_timestamp_ms();
         market.resolved_proof = option::some(string::utf8(proof));
+
+        // Emit the market resolved event
+        emit(MarketResolved {
+            market_id: *market.id.as_inner(),
+            resolved_outcome: outcome,
+        });
     }
 
-    public entry fun claim(
+    public fun claim(
         market: &mut MarketAgreement,
         bet: &mut Bet,
         clock: &Clock,
         ctx: &mut TxContext,
-    ) {
+    ): Coin<SUI> {
         // Check if the bet is already claimed
         assert!(bet.claimed_at == 0, E_ALREADY_RESOLVED);
 
@@ -177,11 +233,27 @@ module contract::core {
         // Calculate the payout = (bet_amount * total_bets) / agg_bets
         let payout = (bet.amount * market.bets_total) / market.bets_agg[bet.outcome];
 
-        // Transfer the payout to the user
-        let payout_coin = coin::split(&mut market.bets_coin, payout, ctx);
-        transfer::public_transfer(payout_coin, ctx.sender());
-
         // Mark the bet as claimed
         bet.claimed_at = clock.timestamp_ms();
+
+        // Emit the bet event
+        emit(BetPlaced {
+            market_id: *market.id.as_inner(),
+            bet_id: *bet.id.as_inner(),
+            by: ctx.sender(),
+            outcome: bet.outcome,
+            amount: payout,
+        });
+
+        // Transfer the payout to the user
+        let payout_coin = coin::split(&mut market.bets_coin, payout, ctx);
+        return payout_coin
+    }
+
+    public fun destroy_bet(
+        bet: Bet,
+    ) {
+        let Bet { id, .. } = bet;
+        object::delete(id);
     }
 }

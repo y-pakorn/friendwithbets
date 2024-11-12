@@ -7,7 +7,7 @@ Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-fram
 
 [addresses]
 contract = "0x0"
-admin = "0x9"
+admin = "0x733de1ead65a8d988b5d52c1ae5bdf89730b5109a9662251852cdf571a0980ac"
 
 [dev-dependencies]
 
