@@ -25,14 +25,16 @@ async function loadGoogleFont(url: string) {
 export async function GET(request: NextRequest) {
   const title = request.nextUrl.searchParams.get("title")
   const description = request.nextUrl.searchParams.get("description")
-  const large = request.nextUrl.searchParams.get("large")
+  const isLarge = request.nextUrl.searchParams.get("large") === "true"
+  const isLocked = request.nextUrl.searchParams.get("locked")
+  const total = request.nextUrl.searchParams.get("total")
   return new ImageResponse(
     (
       <div
         tw="flex flex-col justify-end p-12 h-full bg-white w-full"
         style={{
           fontFamily,
-          gap: -20,
+          gap: -10,
         }}
       >
         <div tw="flex flex-col">
@@ -46,10 +48,25 @@ export async function GET(request: NextRequest) {
           <h2 tw="text-4xl font-bold">Friend With Bets</h2>
         </div>
         {title && (
-          <h1 tw={cn("text-6xl font-bold", large === "true" && "text-8xl")}>
-            {title}
-          </h1>
+          <h1 tw={cn("text-6xl font-bold", isLarge && "text-8xl")}>{title}</h1>
         )}
+        <div
+          tw="flex items-center"
+          style={{
+            gap: 16,
+          }}
+        >
+          {isLocked !== null && (
+            <div tw="text-2xl rounded-full py-2 px-4 bg-gray-100">
+              {isLocked === "true" ? "🔒 Locked" : "🔓 Public"}
+            </div>
+          )}
+          {total && (
+            <div tw="text-2xl rounded-full py-2 px-4 bg-gray-100 flex">
+              💰 {total} SUI 💧
+            </div>
+          )}
+        </div>
         {description && <p tw="text-3xl">{description}</p>}
       </div>
     ),

@@ -2,6 +2,7 @@ import { Metadata } from "next"
 
 import { env } from "@/env.mjs"
 import { getSuiNetworkUrl } from "@/config/sui"
+import { formatSuiDecimal } from "@/lib/utils"
 import { getMarketFetch } from "@/services/sui"
 
 import { MarketDisplay } from "./market-display"
@@ -29,7 +30,7 @@ export async function generateMetadata({
     openGraph: {
       images: [
         {
-          url: `${env.NEXT_PUBLIC_APP_URL}/api/market-thumb?title=${market.title}&description=${market.description}`,
+          url: `${env.NEXT_PUBLIC_APP_URL}/api/market-thumb?title=${market.title}&description=${market.description}&locked=${!!market.publicKey}&total=${formatSuiDecimal(market.betsTotal)}`,
           width: 1200,
           height: 630,
           alt: market.title,
