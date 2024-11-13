@@ -561,7 +561,7 @@ const AuthorizeButton = ({ market }: { market: OnChainAgreement }) => {
               const publicKey = keypair.getPublicKey()
 
               if (publicKey.equals(new Ed25519PublicKey(market.publicKey!))) {
-                router.replace(`${pathname}?key=${signed.signature}`)
+                router.replace(`${pathname}?key=${keypair.getSecretKey()}`)
                 return
               } else {
                 toast.error("Malformed key")
