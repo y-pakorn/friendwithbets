@@ -205,11 +205,11 @@ export default function Home() {
             <Image
               src="/icon.png"
               alt="Friend With Bets"
-              width={60}
-              height={60}
+              width={80}
+              height={80}
             />
-            <h2 className="text-lg font-bold">{siteConfig.name}</h2>
-            <h1 className="my-4 text-3xl font-medium">
+            <h2 className="text-xl font-bold">{siteConfig.name}</h2>
+            <h1 className="my-4 text-4xl font-medium">
               Bet on anything, anywhere, with anyone.
             </h1>
           </div>
