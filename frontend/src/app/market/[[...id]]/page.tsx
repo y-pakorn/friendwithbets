@@ -47,6 +47,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SuiIcon } from "@/components/sui-icon"
+import { getPredictionResolvedOutcome } from "@/services/ai"
 import { getMarkets, stringToBytes } from "@/services/sui"
 
 export default function Home() {
@@ -90,11 +91,23 @@ export default function Home() {
 
 const Market = ({ market }: { market: OnChainAgreement }) => {
   const account = useCurrentAccount()
+  const searchParams = useSearchParams()
+  const key = useMemo(() => searchParams.get("key"), [searchParams])
 
   return (
     <>
       <h1 className="text-3xl font-bold">{market.title}</h1>
       <p className="text-muted-foreground">{market.description}</p>
+      <div className="flex items-center gap-2">
+        <Button
+          onClick={async () => {
+            const outcome = await getPredictionResolvedOutcome(market)
+            console.log(outcome)
+          }}
+        >
+          Resolve
+        </Button>
+      </div>
       <div className="space-y-4 text-sm">
         <div className="rounded-md bg-primary-foreground p-4">
           <div className="font-semibold">Relevant information</div>

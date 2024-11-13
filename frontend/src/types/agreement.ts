@@ -29,7 +29,7 @@ export const agreementSchema = z.object({
   betEndAt: z
     .string()
     .describe(
-      "The date time to end the betting, in UTC ISO format. Normally after the startAt by 1 day. Otherwise it need to be a appropriate time (just a short period). You might ask the user for the time."
+      "The date time to end the betting, in UTC ISO format. Normally after the startAt by 1 day. Otherwise it need to be a appropriate time (just a short period). If the bet is short, use appropriate time based on the agreement. You might ask the user for the bet end at time."
     ),
   resolveAt: z
     .string()
@@ -76,3 +76,13 @@ export type OnChainAgreement = {
   betsAgg: string[]
   betsTotal: string
 }
+
+export const agreementOutcomeSchema = z.object({
+  outcomeIndex: z.number().int().describe("The index of the outcome"),
+  reason: z.string().describe("The reason for why the outcome is chosen"),
+  sources: z
+    .array(z.string())
+    .describe("The sources that has been queried to resolve the outcome"),
+})
+
+export type AgreementOutcome = z.infer<typeof agreementOutcomeSchema>

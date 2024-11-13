@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -14,7 +15,9 @@ import {
   Handshake,
   LayoutDashboard,
   Plus,
+  SunMoon,
 } from "lucide-react"
+import { useTheme } from "next-themes"
 
 import {
   Sidebar,
@@ -70,6 +73,8 @@ export function AppSidebar() {
 
   const [open, setOpen] = useState(false)
 
+  const { setTheme, resolvedTheme } = useTheme()
+
   return (
     <>
       <ConnectModal
@@ -80,7 +85,12 @@ export function AppSidebar() {
       <Sidebar>
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
-            <Handshake className="size-6" />
+            <Image
+              src="/icon.png"
+              alt="Friend With Bets"
+              width={24}
+              height={24}
+            />
             <h1 className="text-lg font-bold">Friend With Bets</h1>
           </div>
         </SidebarHeader>
@@ -108,6 +118,24 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
+
+          <SidebarGroup>
+            <SidebarGroupLabel>Settings</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={() =>
+                      setTheme(resolvedTheme === "dark" ? "light" : "dark")
+                    }
+                  >
+                    <SunMoon className="size-6" />
+                    <span>Toogle Theme</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
           <SidebarMenu>

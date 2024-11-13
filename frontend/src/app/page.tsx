@@ -1,12 +1,10 @@
 "use client"
 
 import { useCallback, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { getPredictionInput } from "@/services/ai"
-import { stringToBytes, stringToNumberArray } from "@/services/sui"
 import {
-  ConnectButton,
   useCurrentAccount,
   useSignAndExecuteTransaction,
   useSignPersonalMessage,
@@ -15,6 +13,7 @@ import {
 import { bcs } from "@mysten/sui/bcs"
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519"
 import { Transaction } from "@mysten/sui/transactions"
+import { readStreamableValue } from "ai/rsc"
 import { Info, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -25,6 +24,8 @@ import { dayjs } from "@/lib/dayjs"
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { getPredictionInput } from "@/services/ai"
+import { stringToBytes, stringToNumberArray } from "@/services/sui"
 
 export default function Home() {
   const [messages, setMessages] = useState<
@@ -42,6 +43,12 @@ export default function Home() {
 
   const [input, setInput] = useState("")
   const [thinking, setThinking] = useState(false)
+  const [thoughts, setThoughts] = useState<
+    {
+      description?: string
+      status: string
+    }[]
+  >([])
   const submit = useCallback(async () => {
     if (!input) return
 
@@ -49,7 +56,8 @@ export default function Home() {
     setMessages([...newMessage, { content: "", role: "assistant" }] as const)
     setInput("")
     setThinking(true)
-    const result = await getPredictionInput(
+    setThoughts([])
+    const stream = await getPredictionInput(
       newMessage.map((m: any) => ({
         role: m.role === "result" ? "assistant" : m.role,
         content:
@@ -65,25 +73,24 @@ export default function Home() {
             : m.content,
       }))
     )
-    setThinking(false)
-
-    if (!result) return
-
-    if (result.type === "TALK") {
-      setMessages([
-        ...newMessage,
-        { content: result.TALK || "", role: "assistant" },
-      ] as const)
-    }
-
-    if (result.type === "FINAL_ANSWER") {
-      setMessages([
-        ...newMessage,
-        {
-          content: result.FINAL_ANSWER!,
-          role: "result",
-        },
-      ] as const)
+    for await (const result of readStreamableValue(stream)) {
+      if (!result) continue
+      if (result.type === "raw_thought") {
+        setThoughts((t) => [...t, result])
+      } else {
+        setThinking(false)
+        if (result.type === "text") {
+          setMessages([
+            ...newMessage,
+            { content: result.text, role: "assistant" },
+          ] as const)
+        } else if (result.type === "agreement") {
+          setMessages([
+            ...newMessage,
+            { content: result.agreement, role: "result" },
+          ] as const)
+        }
+      }
     }
   }, [input, messages])
 
@@ -192,28 +199,38 @@ export default function Home() {
 
   return (
     <main className="container flex min-h-screen flex-col items-center justify-center gap-4 py-8">
-      <div className="flex items-center gap-4">
-        <h1 className="text-3xl font-bold">{siteConfig.name}</h1>
-        <ConnectButton />
-      </div>
-
       {messages.length === 0 ? (
-        <form
-          className="flex w-full max-w-[600px] items-center gap-2"
-          onSubmit={async (e) => {
-            e.preventDefault()
-            submit()
-          }}
-        >
-          <Input
-            placeholder="Create market on anything"
-            onChange={(e) => setInput(e.target.value)}
-            value={input}
-          />
-          <Button type="submit">Create</Button>
-        </form>
+        <>
+          <div className="flex flex-col items-center text-center">
+            <Image
+              src="/icon.png"
+              alt="Friend With Bets"
+              width={60}
+              height={60}
+            />
+            <h2 className="text-lg font-bold">{siteConfig.name}</h2>
+            <h1 className="my-4 text-3xl font-medium">
+              Bet on anything, anywhere, with anyone.
+            </h1>
+          </div>
+          <form
+            className="flex w-full max-w-[600px] items-center gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              submit()
+            }}
+          >
+            <Input
+              placeholder="Create market on anything"
+              onChange={(e) => setInput(e.target.value)}
+              value={input}
+            />
+            <Button type="submit">Create</Button>
+          </form>
+        </>
       ) : (
-        <div className="w-full space-y-2">
+        <div className="flex w-full flex-1 flex-col gap-2">
+          <div className="flex-1" />
           {messages.map((message, index, a) => (
             <div
               key={index}
@@ -223,12 +240,28 @@ export default function Home() {
               )}
             >
               {thinking && message.role !== "user" && a.length - 1 === index ? (
-                <div>
-                  <Loader2 className="size-4 animate-spin" />
+                <div className="space-y-2">
+                  <div className="w-fit rounded-md bg-primary-foreground p-4">
+                    <Loader2 className="size-4 animate-spin" />
+                  </div>
+                  <div>
+                    {thoughts.map((thoughts, i) => (
+                      <div key={i} className="text-sm">
+                        {thoughts.status}{" "}
+                        <span className="text-muted-foreground">
+                          {thoughts.description}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : message.role === "result" ? (
                 <div>
-                  <div className="space-y-2 rounded-md bg-primary-foreground p-4">
+                  <div
+                    className={cn(
+                      "space-y-2 rounded-md bg-primary-foreground p-4"
+                    )}
+                  >
                     <div className="space-y-2 text-sm">
                       <div className="text-lg font-bold">
                         {message.content.title}
@@ -312,14 +345,19 @@ export default function Home() {
                   </Button>
                 </div>
               ) : (
-                <div className="whitespace-normal rounded-md bg-primary-foreground p-2">
+                <div
+                  className={cn(
+                    "whitespace-normal rounded-md bg-primary-foreground p-2",
+                    message.role === "user" && "bg-secondary"
+                  )}
+                >
                   {message.content}
                 </div>
               )}
             </div>
           ))}
           <form
-            className="flex w-full items-center gap-2"
+            className="bottom-0 flex w-full items-center gap-2"
             onSubmit={async (e) => {
               e.preventDefault()
               submit()
