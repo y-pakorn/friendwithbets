@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         >
           {isLocked !== null && (
             <div tw="text-2xl rounded-full py-2 px-4 bg-gray-100">
-              {isLocked === "true" ? "🔒 Locked" : "🔓 Public"}
+              {isLocked === "true" ? "🔒 Private" : "🔓 Public"}
             </div>
           )}
           {total && (
