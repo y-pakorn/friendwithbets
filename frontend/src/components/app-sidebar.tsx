@@ -7,17 +7,20 @@ import { usePathname } from "next/navigation"
 import {
   ConnectModal,
   useCurrentAccount,
+  useDisconnectWallet,
   useResolveSuiNSName,
 } from "@mysten/dapp-kit"
 import {
   ChevronsUpDown,
   Compass,
-  Handshake,
+  Copy,
   LayoutDashboard,
+  LogOut,
   Plus,
   SunMoon,
 } from "lucide-react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 
 import {
   Sidebar,
@@ -31,11 +34,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-  SidebarTrigger,
 } from "@/components/ui/sidebar"
 
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
-import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
 
 const NAVIGATIONS = [
   {
@@ -69,6 +79,7 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   const account = useCurrentAccount()
+  const { mutateAsync: disconnect } = useDisconnectWallet()
   const name = useResolveSuiNSName(account?.address)
 
   const [open, setOpen] = useState(false)
@@ -84,7 +95,7 @@ export function AppSidebar() {
       />
       <Sidebar>
         <SidebarHeader className="p-4">
-          <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <Image
               src="/icon.png"
               alt="Friend With Bets"
@@ -92,7 +103,7 @@ export function AppSidebar() {
               height={24}
             />
             <h1 className="text-lg font-bold">Friend With Bets</h1>
-          </div>
+          </Link>
         </SidebarHeader>
         <SidebarSeparator />
         <SidebarContent>
@@ -176,6 +187,32 @@ export function AppSidebar() {
                     <ChevronsUpDown className="ml-auto size-4" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
+                {account && (
+                  <DropdownMenuContent className="min-w-40">
+                    <DropdownMenuLabel>Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          navigator.clipboard.writeText(account.address)
+                          toast.success("Address copied to clipboard")
+                        }}
+                      >
+                        <Copy className="mr-2 size-4" />
+                        <span>Copy Address</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          await disconnect()
+                          toast.success("Wallet disconnected")
+                        }}
+                      >
+                        <LogOut className="mr-2 size-4" />
+                        <span>Disconnect</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                )}
               </DropdownMenu>
             </SidebarMenuItem>
           </SidebarMenu>

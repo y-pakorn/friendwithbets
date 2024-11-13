@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import { useParams, useSearchParams } from "next/navigation"
+import {
+  useParams,
+  usePathname,
+  useRouter,
+  useSearchParams,
+} from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   useCurrentAccount,
@@ -16,7 +21,7 @@ import { Transaction } from "@mysten/sui/transactions"
 import type { WalletAccount } from "@mysten/wallet-standard"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import BigNumber from "bignumber.js"
-import { Clock, Coins, Info, Loader2 } from "lucide-react"
+import { Clock, Coins, Info, Key, LinkIcon, Loader2, LogIn } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -25,6 +30,7 @@ import { OnChainAgreement } from "@/types/agreement"
 import { contract } from "@/config/contract"
 import { dayjs } from "@/lib/dayjs"
 import { formatSuiDecimal, mistToSui, suiToMist } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Dialog,
@@ -47,7 +53,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { SuiIcon } from "@/components/sui-icon"
-import { getPredictionResolvedOutcome } from "@/services/ai"
 import { getMarkets, stringToBytes } from "@/services/sui"
 
 export default function Home() {
@@ -93,20 +98,78 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
   const account = useCurrentAccount()
   const searchParams = useSearchParams()
   const key = useMemo(() => searchParams.get("key"), [searchParams])
+  const isPublic = !market.publicKey
 
   return (
     <>
-      <h1 className="text-3xl font-bold">{market.title}</h1>
+      <h1 className="inline-flex items-center gap-2 text-3xl font-bold">
+        {market.title}
+        {!isPublic && <Badge variant="secondary">Private</Badge>}
+      </h1>
       <p className="text-muted-foreground">{market.description}</p>
       <div className="flex items-center gap-2">
-        <Button
-          onClick={async () => {
-            const outcome = await getPredictionResolvedOutcome(market)
-            console.log(outcome)
-          }}
-        >
-          Resolve
-        </Button>
+        {
+          //<Button
+          //onClick={async () => {
+          //const outcome = await getPredictionResolvedOutcome(market)
+          //console.log(outcome.FINAL_ANSWER)
+          //}}
+          //>
+          //Resolve
+          //</Button>
+        }
+        {isPublic ? (
+          <Button
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href)
+              toast.success("Link copied to clipboard")
+            }}
+            size="sm"
+            variant="outline"
+          >
+            <LinkIcon className="mr-2 size-4" />
+            Share Market
+          </Button>
+        ) : key ? (
+          <>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href)
+                toast.success("Link copied to clipboard")
+              }}
+              size="sm"
+            >
+              <LinkIcon className="mr-2 size-4" />
+              Share Market With Access
+            </Button>
+            <Button
+              onClick={() => {
+                const url = new URL(window.location.href)
+                url.searchParams.delete("key")
+                navigator.clipboard.writeText(url.toString())
+                toast.success("Link copied to clipboard")
+              }}
+              size="sm"
+              variant="outline"
+            >
+              <LinkIcon className="mr-2 size-4" />
+              Share Market
+            </Button>
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(key)
+                toast.success("Key copied to clipboard")
+              }}
+              size="sm"
+              variant="outline"
+            >
+              <Key className="mr-2 size-4" />
+              Export Key
+            </Button>
+          </>
+        ) : (
+          <AuthorizeButton market={market} />
+        )}
       </div>
       <div className="space-y-4 text-sm">
         <div className="rounded-md bg-primary-foreground p-4">
@@ -208,7 +271,12 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
               </div>
             </div>
             {account && (
-              <BetButton market={market} outcomeIndex={i} account={account} />
+              <BetButton
+                market={market}
+                outcomeIndex={i}
+                account={account}
+                disabled={!isPublic && !key}
+              />
             )}
           </div>
         ))}
@@ -419,6 +487,91 @@ const BetButton = ({
               </DialogClose>
               <Button type="submit" disabled={form.formState.isSubmitting}>
                 Place Bet
+                {form.formState.isSubmitting && (
+                  <Loader2 className="ml-2 size-4 animate-spin" />
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const AuthorizeButton = ({ market }: { market: OnChainAgreement }) => {
+  const [open, setOpen] = useState(false)
+
+  const formSchema = z.object({
+    key: z.string().min(1),
+  })
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      key: "",
+    },
+  })
+
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const publicKey = new Ed25519PublicKey(market.publicKey!)
+    try {
+      const keypair = Ed25519Keypair.fromSecretKey(data.key)
+      if (!keypair.getPublicKey().equals(publicKey)) {
+        toast.error("Invalid key for private market", {
+          description: "Please provide a valid key to access this market",
+        })
+        return
+      }
+      router.replace(`${pathname}?key=${data.key}`)
+      setOpen(false)
+    } catch (e) {
+      toast.error("Malformed key for private market", {
+        description: "Please provide a valid key to access this market",
+      })
+      return
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" disabled={market.betEndAt < new Date()}>
+          <LogIn className="mr-2 size-4" />
+          Authorize Access To Market
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Authorize Access To Market</DialogTitle>
+          <DialogDescription>
+            To access this private market, please provide the correct key.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="key"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Key</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Key" {...field} autoComplete="off" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end gap-2">
+              <DialogClose asChild>
+                <Button variant="secondary">Cancel</Button>
+              </DialogClose>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                Authorize
                 {form.formState.isSubmitting && (
                   <Loader2 className="ml-2 size-4 animate-spin" />
                 )}
