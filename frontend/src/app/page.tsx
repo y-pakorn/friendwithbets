@@ -108,7 +108,7 @@ export default function Home() {
     const { publicKeyBcs, privateKey } = !pub
       ? await (async () => {
           const message = stringToBytes(
-            `Create Market "${agreement.title}", bet end at ${agreement.betEndAt}, resolve at ${agreement.resolveAt}, by ${account.address}`
+            `Create Market "${agreement.title}", bet end at ${new Date(agreement.betEndAt).valueOf()}, resolve at ${new Date(agreement.resolveAt).valueOf()}, by ${account.address}`
           )
           const signed = await sign({
             message,

@@ -75,6 +75,7 @@ export type OnChainAgreement = {
   betEndAt: Date
   betsAgg: string[]
   betsTotal: string
+  creator: string
 }
 
 export const agreementOutcomeSchema = z.object({

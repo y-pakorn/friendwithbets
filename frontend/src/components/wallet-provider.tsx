@@ -10,16 +10,16 @@ import { getFullnodeUrl } from "@mysten/sui/client"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { siteConfig } from "@/config/site"
+import { networkConfig } from "@/config/sui"
 
-const { networkConfig } = createNetworkConfig({
-  devnet: { url: getFullnodeUrl("devnet") },
-})
+export const { networkConfig: nc } = createNetworkConfig(networkConfig)
+
 const queryClient = new QueryClient()
 
 const WalletProvider = ({ children }: { children: ReactNode }) => {
   return (
     <QueryClientProvider client={queryClient}>
-      <SuiClientProvider networks={networkConfig} defaultNetwork="devnet">
+      <SuiClientProvider networks={nc} defaultNetwork="devnet">
         <SuiWalletProvider
           autoConnect
           stashedWallet={{
