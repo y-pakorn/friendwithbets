@@ -86,3 +86,12 @@ export const agreementOutcomeSchema = z.object({
 })
 
 export type AgreementOutcome = z.infer<typeof agreementOutcomeSchema>
+
+export type AgreementBet = {
+  id: string
+  amount: string
+  betAt: Date
+  outcomeIndex: number
+  marketId: string
+  claimedAt?: Date
+}
