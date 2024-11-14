@@ -27,6 +27,8 @@ import { Input } from "@/components/ui/input"
 import { getPredictionInput } from "@/services/ai"
 import { stringToBytes, stringToNumberArray } from "@/services/sui"
 
+export const maxDuration = 60
+
 export default function Home() {
   const [messages, setMessages] = useState<
     (

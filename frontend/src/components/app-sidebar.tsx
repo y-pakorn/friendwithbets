@@ -14,6 +14,7 @@ import {
   ChevronsUpDown,
   Compass,
   Copy,
+  Droplets,
   LayoutDashboard,
   LogOut,
   Plus,
@@ -22,6 +23,9 @@ import {
 import { useTheme } from "next-themes"
 import { toast } from "sonner"
 
+import { requestSuiFromFaucet } from "@/config/sui"
+import { formatSuiDecimal } from "@/lib/utils"
+import { useAccountBalance } from "@/hooks/useAccountBalance"
 import {
   Sidebar,
   SidebarContent,
@@ -36,6 +40,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar"
 
+import { SuiIcon } from "./sui-icon"
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import {
   DropdownMenu,
@@ -85,6 +90,7 @@ export function AppSidebar() {
   const [open, setOpen] = useState(false)
 
   const { setTheme, resolvedTheme } = useTheme()
+  const balance = useAccountBalance()
 
   return (
     <>
@@ -177,11 +183,23 @@ export function AppSidebar() {
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-semibold">
                         {name.data ||
-                          account?.address.slice(0, 8) ||
+                          account?.address.slice(0, 16) ||
                           "Connect Wallet"}
                       </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {account?.address || "Please Connect Wallet"}
+                      <span className="inline-flex items-center gap-1 truncate text-xs text-muted-foreground">
+                        {account?.address ? (
+                          balance.data?.totalBalance ? (
+                            <>
+                              Balance{" "}
+                              {formatSuiDecimal(balance.data.totalBalance)}{" "}
+                              <SuiIcon className="size-3" />
+                            </>
+                          ) : (
+                            "Loading Balance"
+                          )
+                        ) : (
+                          "Please Connect Wallet"
+                        )}
                       </span>
                     </div>
                     <ChevronsUpDown className="ml-auto size-4" />
@@ -201,6 +219,19 @@ export function AppSidebar() {
                         <Copy className="mr-2 size-4" />
                         <span>Copy Address</span>
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          await requestSuiFromFaucet(account.address)
+                          toast.success("Faucet requested")
+                          balance.refetch()
+                        }}
+                      >
+                        <Droplets className="mr-2 size-4" />
+                        <span>Devnet Faucet Request</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
                       <DropdownMenuItem
                         onClick={async () => {
                           await disconnect()

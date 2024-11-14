@@ -9,11 +9,13 @@ export const env = createEnv({
     OPENROUTER_URL: z.string().min(1),
     OPENROUTER_API_KEY: z.string().min(1),
     SERPER_API_KEY: z.string().min(1),
+    ADMIN_PRIVATE_KEY: z.string().min(1),
   },
   runtimeEnv: {
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     OPENROUTER_URL: process.env.OPENROUTER_URL,
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     SERPER_API_KEY: process.env.SERPER_API_KEY,
+    ADMIN_PRIVATE_KEY: process.env.ADMIN_PRIVATE_KEY,
   },
 })

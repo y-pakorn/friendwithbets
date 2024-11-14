@@ -11,14 +11,16 @@ import { Transaction } from "@mysten/sui/transactions"
 import { WalletAccount } from "@mysten/wallet-standard"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import _ from "lodash"
-import { Loader2 } from "lucide-react"
+import { Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { AgreementBet, OnChainAgreement } from "@/types/agreement"
 import { contract } from "@/config/contract"
 import { formatSuiDecimal } from "@/lib/utils"
+import { useResolveMarket } from "@/hooks/useResolveMarket"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
+import { MarketCard } from "@/components/market-card"
 import { SuiIcon } from "@/components/sui-icon"
 import { getMarkets } from "@/services/sui"
 
@@ -121,78 +123,83 @@ const Market = ({
 
   const [isClaiming, setIsClaiming] = useState(false)
   const claim = async () => {
-    const winnerBets = bets.filter(
-      (bet) => bet.outcomeIndex === market.resolvedOutcome && !bet.claimedAt
-    )
-    if (!winnerBets.length) return
-    setIsClaiming(true)
-    const tb = new Transaction()
-    const coins = winnerBets.map((bet) => {
-      const [coin] = tb.moveCall({
-        target: `${contract.core}::core::Claim`,
-        arguments: [tb.object(market.id), tb.object(bet.id), tb.object("0x6")],
+    try {
+      const winnerBets = bets.filter(
+        (bet) => bet.outcomeIndex === market.resolvedOutcome && !bet.claimedAt
+      )
+      if (!winnerBets.length) return
+      setIsClaiming(true)
+      const tb = new Transaction()
+      const coins = winnerBets.map((bet) => {
+        const [coin] = tb.moveCall({
+          target: `${contract.core}::core::claim`,
+          arguments: [
+            tb.object(market.id),
+            tb.object(bet.id),
+            tb.object("0x6"),
+          ],
+        })
+        return coin
       })
-      return coin
-    })
-    const coin =
-      coins.length === 1 ? coins : tb.mergeCoins(coins[0], coins.slice(1))
-    tb.transferObjects(coin, account.address)
+      const coin =
+        coins.length === 1 ? coins : tb.mergeCoins(coins[0], coins.slice(1))
+      tb.transferObjects(coin, account.address)
 
-    const signed = await signAndExecute({
-      transaction: tb,
-    })
-
-    const { errors } = await client.waitForTransaction({
-      digest: signed.digest,
-      options: {
-        showEffects: true,
-      },
-    })
-
-    if (errors) {
-      toast.error("Failed to claim bet returns", {
-        description: errors.join(", "),
+      const signed = await signAndExecute({
+        transaction: tb,
       })
-      return
+
+      const { errors } = await client.waitForTransaction({
+        digest: signed.digest,
+        options: {
+          showEffects: true,
+        },
+      })
+
+      if (errors) {
+        toast.error("Failed to claim bet returns", {
+          description: errors.join(", "),
+        })
+        return
+      }
+
+      qClient.refetchQueries({
+        predicate: (q) => q.queryKey[0] === "my-bets",
+      })
+    } finally {
+      setIsClaiming(false)
     }
+  }
 
+  useResolveMarket(market.id, market.resolveAt < new Date(), () => {
     qClient.refetchQueries({
       predicate: (q) => q.queryKey[0] === "my-bets",
     })
-    setIsClaiming(false)
-  }
+  })
 
   return (
-    <div
-      key={market.id}
-      className="flex flex-col gap-2 rounded-md border bg-card p-4 text-sm"
-    >
-      <div className="flex justify-between">
-        <Badge>
-          {market.resolvedAt
-            ? "Resolved"
-            : market.betEndAt < new Date()
-              ? "Betting Ended"
-              : "Open"}
-        </Badge>
-        {market.publicKey && <Badge variant="outline">Private</Badge>}
-      </div>
-      <div className="text-lg font-bold">{market.title}</div>
-      <div className="text-muted-foreground">{market.description}</div>
-      <div className="flex-1" />
+    <MarketCard market={market}>
       <div className="space-y-2">
         {bets.map((bet) => (
           <div key={bet.id} className="rounded-md border bg-card p-2 text-sm">
             <div className="truncate text-xs text-muted-foreground">
               {bet.id.slice(0, 16)}...
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              {market.resolvedOutcome === bet.outcomeIndex && (
+                <Check className="mr-2 size-4" />
+              )}
               <div className="font-semibold">
                 {market.outcomes[bet.outcomeIndex].title}
               </div>
-              <div className="inline-flex items-center gap-2 text-muted-foreground">
+              <div className="ml-auto inline-flex items-center gap-2 text-muted-foreground">
                 {formatSuiDecimal(bet.amount)} <SuiIcon />
               </div>
+              {bet.claimedAt && (
+                <Badge className="ml-2" variant="outline">
+                  Claimed
+                </Badge>
+              )}
             </div>
           </div>
         ))}
@@ -209,8 +216,8 @@ const Market = ({
         disabled={!market.resolvedAt || !canClaim || isClaiming}
         onClick={claim}
       >
-        Claim {isClaiming && <Loader2 className="size-4 animate-spin" />}
+        Claim {isClaiming && <Loader2 className="ml-2 size-4 animate-spin" />}
       </Button>
-    </div>
+    </MarketCard>
   )
 }

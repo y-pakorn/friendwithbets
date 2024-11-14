@@ -14,7 +14,6 @@ import {
   useSignAndExecuteTransaction,
   useSignPersonalMessage,
   useSuiClient,
-  useSuiClientQuery,
 } from "@mysten/dapp-kit"
 import { bcs } from "@mysten/sui/bcs"
 import { Ed25519Keypair, Ed25519PublicKey } from "@mysten/sui/keypairs/ed25519"
@@ -22,7 +21,16 @@ import { Transaction } from "@mysten/sui/transactions"
 import type { WalletAccount } from "@mysten/wallet-standard"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import BigNumber from "bignumber.js"
-import { Clock, Coins, Info, Key, LinkIcon, Loader2, LogIn } from "lucide-react"
+import {
+  Check,
+  Clock,
+  Coins,
+  Info,
+  Key,
+  LinkIcon,
+  Loader2,
+  LogIn,
+} from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
@@ -31,6 +39,8 @@ import { OnChainAgreement } from "@/types/agreement"
 import { contract } from "@/config/contract"
 import { dayjs } from "@/lib/dayjs"
 import { formatSuiDecimal, mistToSui, suiToMist } from "@/lib/utils"
+import { useAccountBalance } from "@/hooks/useAccountBalance"
+import { useResolveMarket } from "@/hooks/useResolveMarket"
 import { Badge } from "@/components/ui/badge"
 import { Button, buttonVariants } from "@/components/ui/button"
 import {
@@ -101,6 +111,13 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
   const key = useMemo(() => searchParams.get("key"), [searchParams])
   const isPublic = !market.publicKey
 
+  const qClient = useQueryClient()
+  useResolveMarket(market.id, market.resolveAt < new Date(), () => {
+    qClient.refetchQueries({
+      predicate: (query) => query.queryKey[0] === "market",
+    })
+  })
+
   return (
     <>
       <h1 className="inline-flex items-center gap-2 text-3xl font-bold">
@@ -109,16 +126,6 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
       </h1>
       <p className="text-muted-foreground">{market.description}</p>
       <div className="flex items-center gap-2">
-        {
-          //<Button
-          //onClick={async () => {
-          //const outcome = await getPredictionResolvedOutcome(market)
-          //console.log(outcome.FINAL_ANSWER)
-          //}}
-          //>
-          //Resolve
-          //</Button>
-        }
         {isPublic ? (
           <Button
             onClick={() => {
@@ -173,6 +180,33 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
         )}
       </div>
       <div className="space-y-4 text-sm">
+        {market.resolvedProof && (
+          <div className="rounded-md border border-green-500 bg-green-100/50 p-4 dark:bg-green-900/50">
+            <div className="inline-flex items-center gap-2 text-base">
+              Resolved Outcome{" "}
+              <span className="font-bold">
+                {market.outcomes[market.resolvedProof.outcomeIndex].title}
+              </span>{" "}
+              <Check className="size-4" />
+            </div>
+            <div className="text-muted-foreground">
+              {market.resolvedProof?.reason}
+            </div>
+            <div className="flex flex-col">
+              {market.resolvedProof.sources.map((s, i) => (
+                <Link
+                  key={i}
+                  href={s}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline transition-all hover:font-bold"
+                >
+                  {s}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="rounded-md bg-primary-foreground p-4">
           <div className="font-semibold">Relevant information</div>
           <div className="text-muted-foreground">
@@ -247,6 +281,7 @@ const Market = ({ market }: { market: OnChainAgreement }) => {
             key={i}
             className="flex items-center gap-4 rounded-md bg-primary-foreground p-4"
           >
+            {market.resolvedOutcome === i && <Check className="size-8" />}
             <div>
               <div className="text-lg font-semibold">{outcome.title}</div>
               <div className="text-sm text-muted-foreground">
@@ -299,10 +334,7 @@ const BetButton = ({
 }) => {
   const [open, setOpen] = useState(false)
 
-  const balance = useSuiClientQuery("getBalance", {
-    owner: account.address,
-    coinType: "0x2::sui::SUI",
-  })
+  const balance = useAccountBalance()
 
   const formSchema = useMemo(() => {
     const totalBalance = balance.data?.totalBalance || 0

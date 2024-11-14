@@ -69,8 +69,8 @@ export type OnChainAgreement = {
   resolveQuery: string
   resolveSources: string[]
   resolvedAt?: Date
-  resolvedOutcome: number
-  resolvedProof: string
+  resolvedOutcome?: number
+  resolvedProof?: AgreementOutcome
   startAt: Date
   betEndAt: Date
   betsAgg: string[]

@@ -214,6 +214,8 @@ Current date: ${new Date().toISOString()}, ${new Date().toUTCString()}
 
 You are personal prediction market AI assistant. Based on the agreement, resolved and choose the correct outcome of the agreement.
 
+BE PRECISE WITH TIMEZONE, DATE, AND TIME. Make sure that the date and time is correct and precise.
+
 AVAILABLE TOOLS:
 <start>
 ${toolsDescription}
@@ -296,7 +298,7 @@ TOOL_RESPONSE: ${JSON.stringify(toolResponse, null, 2)}`,
     }
 
     if (result.object.type === "FINAL_ANSWER") {
-      return result.object
+      return result.object.FINAL_ANSWER
     }
   }
 }
