@@ -436,6 +436,9 @@ DO NOT QUERY for anything like "forecast" or "predict", you are not generating a
 
 You can use "google_search" to search google, and "navigate_to_url" to navigate to the URL and get the content of the page. You can use those tool multiple times and in many steps.
 
+You also need to solve for what "events" user are refering to. So if user says "Will Curry scores 30+ points in the next game?", you need to get information for his "next game" and validate the information. Or if user says "will mike tyson ko jake paul tonight", you will also need to get information for "mike tyson vs jake paul" and make sure the match is not finished yet.
+
+
 Reflect on the data, if you cannot find the data in current url that you navigated to, you can go back to the previous step and try to find the data in another URL. Or you can use "google_search" to search for the data. Or you can use HIGH_LEVEL_PLANNING to reflect and plan the next steps to retry.
 
 After you are absolutely sure that you get the final answer. Give the final answer to the user.
